@@ -157,3 +157,4 @@ if (saved === "yes" || saved === "no") {
 if (!canStillEscape()) {
   noBtn.textContent = "Nie 🙈";
 }
+
