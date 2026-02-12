@@ -14,7 +14,7 @@
 
   function saveBackground(mode){
     localStorage.setItem(STORAGE_KEY_BG, mode);
-  }
+  } 
 
   function loadBackground(){
     return localStorage.getItem(STORAGE_KEY_BG) || "main";
