@@ -33,7 +33,7 @@
   function setResult(type){
     if (!resultEl) return;
 
-    if (type === "yes") resultEl.textContent = "💚💖";
+    if (type === "yes") resultEl.textContent = "💜💖";
     else if (type === "no") resultEl.textContent = "💔😢";
     else resultEl.textContent = "";
 
