@@ -34,7 +34,7 @@
     if (!resultEl) return;
 
     if (type === "yes") resultEl.textContent = "💜💖";
-    else if (type === "no") resultEl.textContent = "💔😢";
+    else if (type === "no") resultEl.textContent = "🫤😔😢";
     else resultEl.textContent = "";
 
     if (type) localStorage.setItem(STORAGE_KEY_RESULT, type);
