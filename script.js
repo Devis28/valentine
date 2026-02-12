@@ -14,17 +14,13 @@
 
   function saveBackground(mode){
     localStorage.setItem(STORAGE_KEY_BG, mode);
-  } 
-
-  function loadBackground(){
-    return localStorage.getItem(STORAGE_KEY_BG) || "main";
   }
 
   function setBackground(mode){
     document.body.classList.remove("bg-main","bg-yes","bg-no");
     document.body.classList.add(`bg-${mode}`);
-    saveBackground(mode);
-  }
+    localStorage.setItem(STORAGE_KEY_BG, mode);
+ }
 
   function randomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -124,5 +120,6 @@
   });
 
   // INIT: nastav background podľa uloženého stavu
-  setBackground(loadBackground());
+  document.body.classList.add("bg-main");
+
 })();
