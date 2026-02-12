@@ -120,3 +120,11 @@ h1{
 .btn:hover{
   filter: brightness(1.05);
 }
+
+#result{
+  margin-top: 18px;
+  font-size: 36px;
+  min-height: 1.2em;
+  transition: opacity 0.6s ease;
+}
+
