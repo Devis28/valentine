@@ -19,7 +19,6 @@
   --card-bg: rgba(255,255,255,0.14);
   --card-brd: rgba(255,255,255,0.28);
   --shadow: 0 20px 70px rgba(0,0,0,0.28);
-  --
 }
 
 *{ box-sizing: border-box; }
@@ -33,7 +32,7 @@ body{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   background: var(--bg-main);
   overflow: hidden; /* aby "No" neodchádzalo scrollom mimo */
-  transition: background 500ms ease;
+  transition: background 2s ease-in-out;
 }
 
 .stage{
