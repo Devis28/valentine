@@ -8,19 +8,18 @@
     #ff6a00 100%
   );
   --bg-yes: linear-gradient(135deg,
-    #0b8f3a 0%,
-    #25c66b 45%,
-    #b9ffd8 100%
+    #0B8F3A 0%,
+    #25c66b 100%
   );
   --bg-no: linear-gradient(135deg,
-    #ff6a00 0%,
-    #ffb000 55%,
-    #ffd36a 100%
+    #ffb000 0%,
+    #ff6a00 100%
   );
 
   --card-bg: rgba(255,255,255,0.14);
   --card-brd: rgba(255,255,255,0.28);
   --shadow: 0 20px 70px rgba(0,0,0,0.28);
+  --
 }
 
 *{ box-sizing: border-box; }
