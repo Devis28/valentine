@@ -56,3 +56,14 @@ h1{ margin: 0 0 10px; font-size: 28px; }
   font-size: 18px;
   font-weight: 700;
 }
+
+/* aby sa dalo tlačidlo presúvať po obrazovke */
+.btn.no{
+  position: fixed;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+  z-index: 9999;
+}
+
