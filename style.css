@@ -54,7 +54,6 @@ body.bg-no::before  { background: var(--bg-no);   opacity: 1; }
   width: 100vw;
   display: grid;
   place-items: center;
-  padding: 24px;
 }
 
 .card{
