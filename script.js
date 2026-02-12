@@ -4,26 +4,22 @@
   const noBtn  = document.getElementById("noBtn");
 
   const PADDING = 10;
-  const MAX_MOVES = 2;
+  const MAX_MOVES = 2; // presne podľa tvojho kódu
 
-  // transform offsety
   let current = { x: 0, y: 0 };
-
-  // počítame PRESUNY (nie kliky)
   let moveCount = 0;
-  let frozen = false; // keď true, už neuteká
+  let frozen = false;
 
-  function setBackground(mode) {
-    if (mode === "yes") document.body.style.background = "var(--bg-yes)";
-    else if (mode === "no") document.body.style.background = "var(--bg-no)";
-    else document.body.style.background = "var(--bg-main)";
+  function setBackground(mode){
+    document.body.classList.remove("bg-main","bg-yes","bg-no");
+    document.body.classList.add(`bg-${mode}`);
   }
 
-  function randomInt(min, max) {
+  function randomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  function computeSafePosition() {
+  function computeSafePosition(){
     const rect = noBtn.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
@@ -36,7 +32,7 @@
     let x = randomInt(minX, maxX);
     let y = randomInt(minY, maxY);
 
-    // skús sa vyhnúť mikropohybu
+    // vyhni sa mikropohybu
     for (let i = 0; i < 8; i++) {
       const dx = x - rect.left;
       const dy = y - rect.top;
@@ -48,7 +44,7 @@
     return { x, y };
   }
 
-  function moveNoToViewportXY(targetX, targetY) {
+  function moveNoToViewportXY(targetX, targetY){
     const rect = noBtn.getBoundingClientRect();
     const dx = targetX - rect.left;
     const dy = targetY - rect.top;
@@ -59,17 +55,16 @@
     noBtn.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
   }
 
-  function freezeNo() {
+  function freezeNo(){
     frozen = true;
-    // text s novým riadkom cez <br>
-    noBtn.innerHTML = `No (Okay, tap me)`;
+    noBtn.innerHTML = `No<br>Okay, tap me`;
   }
 
-  function evade() {
+  function evade(){
     if (frozen) return;
 
-    // ak už máme 3 presuny, stop
-    if (moveCount >= MAX_MOVES) {
+    // ak už spravil MAX_MOVES presunov, zamrzni
+    if (moveCount >= MAX_MOVES){
       freezeNo();
       return;
     }
@@ -78,29 +73,26 @@
     moveNoToViewportXY(pos.x, pos.y);
 
     moveCount++;
-    if (moveCount >= MAX_MOVES) {
-      // po treťom presune hneď “zamrzni”
+
+    if (moveCount >= MAX_MOVES){
       freezeNo();
     }
   }
 
-  // YES = zelený gradient
-  yesBtn.addEventListener("click", () => {
-    setBackground("yes");
-  });
+  // YES -> zelený gradient (plynulo)
+  yesBtn.addEventListener("click", () => setBackground("yes"));
 
-  // NO: uteká len 3x na hover/touch
+  // NO uteká len MAX_MOVES krát
   noBtn.addEventListener("mouseenter", evade);
 
   noBtn.addEventListener("touchstart", (e) => {
-    // keď ešte neutiekol 3x, nech sa pri touch najprv uhne (bez kliknutia)
     if (!frozen) e.preventDefault();
     evade();
   }, { passive: false });
 
-  // NO: až keď je zmrazený, klik nastaví oranžový gradient
+  // NO -> oranžový gradient až keď je frozen
   noBtn.addEventListener("click", () => {
-    if (!frozen) return; // kým neutiekol 3x, klik nič nerobí
+    if (!frozen) return;
     setBackground("no");
   });
 
