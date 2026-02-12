@@ -2,7 +2,6 @@
 (() => {
   const yesBtn = document.getElementById("yesBtn");
   const noBtn  = document.getElementById("noBtn");
-  const hint   = document.getElementById("hint");
 
   const PADDING = 10;
   const MAX_MOVES = 3;
@@ -64,7 +63,6 @@
     frozen = true;
     // text s novým riadkom cez <br>
     noBtn.innerHTML = `No<br>Okay, tap me`;
-    hint.textContent = "Už neutekám 😅";
   }
 
   function evade() {
@@ -83,15 +81,12 @@
     if (moveCount >= MAX_MOVES) {
       // po treťom presune hneď “zamrzni”
       freezeNo();
-    } else {
-      hint.textContent = `Presun ${moveCount}/${MAX_MOVES}`;
     }
   }
 
   // YES = zelený gradient
   yesBtn.addEventListener("click", () => {
     setBackground("yes");
-    hint.textContent = "Yaaay 💚";
   });
 
   // NO: uteká len 3x na hover/touch
@@ -107,7 +102,6 @@
   noBtn.addEventListener("click", () => {
     if (!frozen) return; // kým neutiekol 3x, klik nič nerobí
     setBackground("no");
-    hint.textContent = "Ok… orange it is 🧡";
   });
 
   // resize poistka (len keď ešte neuteká)
