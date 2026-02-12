@@ -45,9 +45,9 @@ body::before{
   z-index: -1;
 }
 
-body.bg-main::before{ background: var(--bg-main); opacity: 1; }
 body.bg-yes::before { background: var(--bg-yes);  opacity: 1; }
 body.bg-no::before  { background: var(--bg-no);   opacity: 1; }
+body.bg-main::before{ background: var(--bg-main); opacity: 1; }
 
 .stage{
   height: 100vh;
