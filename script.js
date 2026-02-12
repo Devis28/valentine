@@ -4,15 +4,26 @@
   const noBtn  = document.getElementById("noBtn");
 
   const PADDING = 10;
-  const MAX_MOVES = 2; // presne podľa tvojho kódu
+  const MAX_MOVES = 2;
+
+  const STORAGE_KEY_BG = "valentine_bg"; // main | yes | no
 
   let current = { x: 0, y: 0 };
   let moveCount = 0;
   let frozen = false;
 
+  function saveBackground(mode){
+    localStorage.setItem(STORAGE_KEY_BG, mode);
+  }
+
+  function loadBackground(){
+    return localStorage.getItem(STORAGE_KEY_BG) || "main";
+  }
+
   function setBackground(mode){
     document.body.classList.remove("bg-main","bg-yes","bg-no");
     document.body.classList.add(`bg-${mode}`);
+    saveBackground(mode);
   }
 
   function randomInt(min, max){
@@ -32,7 +43,6 @@
     let x = randomInt(minX, maxX);
     let y = randomInt(minY, maxY);
 
-    // vyhni sa mikropohybu
     for (let i = 0; i < 8; i++) {
       const dx = x - rect.left;
       const dy = y - rect.top;
@@ -63,7 +73,6 @@
   function evade(){
     if (frozen) return;
 
-    // ak už spravil MAX_MOVES presunov, zamrzni
     if (moveCount >= MAX_MOVES){
       freezeNo();
       return;
@@ -79,7 +88,7 @@
     }
   }
 
-  // YES -> zelený gradient (plynulo)
+  // YES -> zelený gradient (a uložiť)
   yesBtn.addEventListener("click", () => setBackground("yes"));
 
   // NO uteká len MAX_MOVES krát
@@ -90,7 +99,7 @@
     evade();
   }, { passive: false });
 
-  // NO -> oranžový gradient až keď je frozen
+  // NO -> oranžový gradient až keď je frozen (a uložiť)
   noBtn.addEventListener("click", () => {
     if (!frozen) return;
     setBackground("no");
@@ -114,6 +123,6 @@
     moveNoToViewportXY(clampedX, clampedY);
   });
 
-  // init
-  setBackground("main");
+  // INIT: nastav background podľa uloženého stavu
+  setBackground(loadBackground());
 })();
