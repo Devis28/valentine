@@ -1,160 +1,137 @@
-const yesBtn = document.getElementById("yesBtn");
-const noBtn  = document.getElementById("noBtn");
-const result = document.getElementById("result");
+// script.js
+(() => {
+  const yesBtn = document.getElementById("yesBtn");
+  const noBtn  = document.getElementById("noBtn");
+  const hint   = document.getElementById("hint");
 
-const STORAGE_KEY = "valentine_choice";
-const NO_ESCAPES_LIMIT = 8; // po koľkých "útekoch" už dovolí kliknúť na Nie
+  const PADDING = 10;       // minimálna medzera od okraja obrazovky
+  const MAX_NO_CLICKS = 3;  // po 3 klikoch už neuteká
 
-function setChoice(choice) {
-  if (choice === "yes") {
-    document.body.style.background = "#16a34a"; // zelená
-    result.textContent = "Jupí! 💚";
-  } else if (choice === "no") {
-    document.body.style.background = "#f97316"; // oranžová
-    result.textContent = "Okej 😅🧡";
-  } else {
-    // default
-    document.body.style.background = "#111827";
-    result.textContent = "";
+  let noClicks = 0;
+  let evasionEnabled = true;
+
+  // Držíme aktuálnu pozíciu cez transform (x,y) v rámci viewportu
+  let current = { x: 0, y: 0 };
+
+  function setBackground(mode) {
+    if (mode === "yes") {
+      document.body.style.background = "var(--bg-yes)";
+    } else if (mode === "no") {
+      document.body.style.background = "var(--bg-no)";
+    } else {
+      document.body.style.background = "var(--bg-main)";
+    }
   }
 
-  localStorage.setItem(STORAGE_KEY, choice);
-}
-
-yesBtn.addEventListener("click", () => setChoice("yes"));
-
-/* ---------------------------
-   Utekajúce "Nie" (safe viewport)
----------------------------- */
-
-function clamp(v, min, max) {
-  return Math.max(min, Math.min(max, v));
-}
-
-// pri prvom pohybe prepneme "Nie" na presné px pozicionovanie
-let noInitialized = false;
-function initNoButtonPosition() {
-  if (noInitialized) return;
-
-  const rect = noBtn.getBoundingClientRect();
-  noBtn.style.transform = "none";
-  noBtn.style.left = `${rect.left}px`;
-  noBtn.style.top  = `${rect.top}px`;
-
-  noInitialized = true;
-}
-
-let escapes = Number(localStorage.getItem("no_escapes_count") || "0");
-
-function canStillEscape() {
-  return escapes < NO_ESCAPES_LIMIT;
-}
-
-function moveNoButtonAway(fromX, fromY) {
-  initNoButtonPosition();
-
-  const rect = noBtn.getBoundingClientRect();
-  const bx = rect.left + rect.width / 2;
-  const by = rect.top  + rect.height / 2;
-
-  let dx = bx - fromX;
-  let dy = by - fromY;
-
-  if (dx === 0 && dy === 0) {
-    dx = Math.random() - 0.5;
-    dy = Math.random() - 0.5;
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
   }
 
-  const len = Math.hypot(dx, dy) || 1;
-  dx /= len;
-  dy /= len;
-
-  const jump = 160;
-
-  let newLeft = rect.left + dx * jump;
-  let newTop  = rect.top  + dy * jump;
-
-  const pad = 8;
-  const minLeft = pad;
-  const minTop  = pad;
-  const maxLeft = window.innerWidth  - rect.width  - pad;
-  const maxTop  = window.innerHeight - rect.height - pad;
-
-  newLeft = clamp(newLeft, minLeft, maxLeft);
-  newTop  = clamp(newTop,  minTop,  maxTop);
-
-  noBtn.style.left = `${newLeft}px`;
-  noBtn.style.top  = `${newTop}px`;
-
-  escapes += 1;
-  localStorage.setItem("no_escapes_count", String(escapes));
-
-  // po limite už prestane utekať (a dovolí kliknúť)
-  if (!canStillEscape()) {
-    noBtn.textContent = "Nie 🙈";
-    noBtn.style.cursor = "pointer";
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
-}
 
-// PC: uteká keď sa kurzor priblíži (kým má utekať)
-document.addEventListener("mousemove", (e) => {
-  if (!canStillEscape()) return;
+  // Vygeneruje novú pozíciu tak, aby bolo tlačidlo vždy celé viditeľné na obrazovke
+  function computeSafePosition() {
+    const rect = noBtn.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
 
-  const rect = noBtn.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top  + rect.height / 2;
-  const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    // Povolený rozsah pre ľavý horný roh tlačidla (v viewport súradniciach)
+    const minX = PADDING;
+    const minY = PADDING;
+    const maxX = window.innerWidth  - w - PADDING;
+    const maxY = window.innerHeight - h - PADDING;
 
-  if (dist < 120) moveNoButtonAway(e.clientX, e.clientY);
-});
+    // Ak je extrémne malý viewport, poistka
+    const safeMaxX = Math.max(minX, maxX);
+    const safeMaxY = Math.max(minY, maxY);
 
-// Mobile: uteká pri pokuse o ťuknutie (kým má utekať)
-noBtn.addEventListener("touchstart", (e) => {
-  if (!canStillEscape()) return; // už môže kliknúť normálne
+    // Skúsime nájsť pozíciu, ktorá nebude "takmer tá istá"
+    let x, y;
+    for (let i = 0; i < 10; i++) {
+      x = randomInt(minX, safeMaxX);
+      y = randomInt(minY, safeMaxY);
 
-  e.preventDefault();
-  const t = e.touches[0];
-  moveNoButtonAway(t.clientX, t.clientY);
-}, { passive: false });
+      const dx = x - (rect.left);
+      const dy = y - (rect.top);
+      if (Math.hypot(dx, dy) > 80) break;
+    }
 
-// Kliknutie na Nie:
-// - kým uteká: kliknutie zablokuje a nechá ho odskočiť
-// - po limite: uloží "no" a nastaví oranžovú (aj po refreshi)
-noBtn.addEventListener("click", (e) => {
-  if (canStillEscape()) {
-    e.preventDefault();
-    moveNoButtonAway(window.innerWidth / 2, window.innerHeight / 2);
-    return;
+    return { x, y };
   }
-  setChoice("no");
-});
 
-// pri resize (rotácia mobilu) udržať tlačidlo v obraze
-window.addEventListener("resize", () => {
-  if (!noInitialized) return;
+  // Nastaví transform tak, aby sa tlačidlo presunulo na cieľové (viewport) súradnice
+  function moveNoToViewportXY(targetX, targetY) {
+    const rect = noBtn.getBoundingClientRect();
 
-  const rect = noBtn.getBoundingClientRect();
-  const pad = 8;
-  const maxLeft = window.innerWidth  - rect.width  - pad;
-  const maxTop  = window.innerHeight - rect.height - pad;
+    // rozdiel medzi aktuálnym rect a cieľom
+    const dx = targetX - rect.left;
+    const dy = targetY - rect.top;
 
-  const safeLeft = clamp(rect.left, pad, maxLeft);
-  const safeTop  = clamp(rect.top,  pad, maxTop);
+    current.x += dx;
+    current.y += dy;
 
-  noBtn.style.left = `${safeLeft}px`;
-  noBtn.style.top  = `${safeTop}px`;
-});
+    noBtn.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
+  }
 
-/* ---------------------------
-   Načítanie uloženého výsledku po refreshi
----------------------------- */
-const saved = localStorage.getItem(STORAGE_KEY);
-if (saved === "yes" || saved === "no") {
-  setChoice(saved);
-}
+  function evade() {
+    if (!evasionEnabled) return;
 
-// ak už vyčerpal úteky v minulosti, tak nech už neuteká ani po refreshi
-if (!canStillEscape()) {
-  noBtn.textContent = "Nie 🙈";
-}
+    const pos = computeSafePosition();
+    moveNoToViewportXY(pos.x, pos.y);
+  }
 
+  // --- Events ---
+
+  yesBtn.addEventListener("click", () => {
+    setBackground("yes");
+    hint.textContent = "Yaaay 💚";
+  });
+
+  // "No" sa posunie pri pokuse prejsť kurzorom / dotykom
+  noBtn.addEventListener("mouseenter", evade);
+  noBtn.addEventListener("touchstart", (e) => {
+    // zabráni náhodnému kliknutiu pri touch (najprv uteká)
+    if (evasionEnabled) e.preventDefault();
+    evade();
+  }, { passive: false });
+
+  // Po 3 úspešných kliknutiach sa prestane hýbať a zafarbí na oranžový gradient
+  noBtn.addEventListener("click", () => {
+    noClicks++;
+
+    if (noClicks < MAX_NO_CLICKS) {
+      hint.textContent = `No click: ${noClicks}/3 (ešte utekám 😈)`;
+      // po kliknutí sa môže ešte raz pohnúť, aby to bolo "živé"
+      evade();
+      return;
+    }
+
+    // tretí klik = finále
+    evasionEnabled = false;
+    setBackground("no");
+    hint.textContent = "OK… 😅 (už neutekám)";
+  });
+
+  // Keď sa zmení veľkosť okna, udrž "No" v bezpečnej oblasti
+  window.addEventListener("resize", () => {
+    if (!evasionEnabled) return;
+    // presuň na bezpečnú pozíciu (ak by sa po resize ocitol mimo)
+    const rect = noBtn.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+
+    const minX = PADDING;
+    const minY = PADDING;
+    const maxX = window.innerWidth  - w - PADDING;
+    const maxY = window.innerHeight - h - PADDING;
+
+    const clampedX = clamp(rect.left, minX, Math.max(minX, maxX));
+    const clampedY = clamp(rect.top,  minY, Math.max(minY, maxY));
+
+    moveNoToViewportXY(clampedX, clampedY);
+  });
+
+  // inicial
+  setBackground("main");
+})();
