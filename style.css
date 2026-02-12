@@ -110,10 +110,3 @@ h1{
 .btn:hover{
   filter: brightness(1.05);
 }
-
-.hint{
-  margin: 14px 0 0;
-  font-size: 14px;
-  color: rgba(255,255,255,0.85);
-  opacity: 0.9;
-}
