@@ -2,15 +2,23 @@ const yesBtn = document.getElementById("yesBtn");
 const noBtn  = document.getElementById("noBtn");
 const result = document.getElementById("result");
 
+const STORAGE_KEY = "valentine_choice";
+const NO_ESCAPES_LIMIT = 8; // po koľkých "útekoch" už dovolí kliknúť na Nie
+
 function setChoice(choice) {
   if (choice === "yes") {
     document.body.style.background = "#16a34a"; // zelená
     result.textContent = "Jupí! 💚";
-  } else {
+  } else if (choice === "no") {
     document.body.style.background = "#f97316"; // oranžová
     result.textContent = "Okej 😅🧡";
+  } else {
+    // default
+    document.body.style.background = "#111827";
+    result.textContent = "";
   }
-  localStorage.setItem("valentine_choice", choice);
+
+  localStorage.setItem(STORAGE_KEY, choice);
 }
 
 yesBtn.addEventListener("click", () => setChoice("yes"));
@@ -29,13 +37,17 @@ function initNoButtonPosition() {
   if (noInitialized) return;
 
   const rect = noBtn.getBoundingClientRect();
-
-  // nastavíme ho presne tam, kde aktuálne je (v px)
   noBtn.style.transform = "none";
   noBtn.style.left = `${rect.left}px`;
   noBtn.style.top  = `${rect.top}px`;
 
   noInitialized = true;
+}
+
+let escapes = Number(localStorage.getItem("no_escapes_count") || "0");
+
+function canStillEscape() {
+  return escapes < NO_ESCAPES_LIMIT;
 }
 
 function moveNoButtonAway(fromX, fromY) {
@@ -45,11 +57,9 @@ function moveNoButtonAway(fromX, fromY) {
   const bx = rect.left + rect.width / 2;
   const by = rect.top  + rect.height / 2;
 
-  // smer preč od kurzora / touch
   let dx = bx - fromX;
   let dy = by - fromY;
 
-  // ak je presne na bode, vyber náhodný smer
   if (dx === 0 && dy === 0) {
     dx = Math.random() - 0.5;
     dy = Math.random() - 0.5;
@@ -59,12 +69,11 @@ function moveNoButtonAway(fromX, fromY) {
   dx /= len;
   dy /= len;
 
-  const jump = 160; // ako ďaleko odskočí (px)
+  const jump = 160;
 
   let newLeft = rect.left + dx * jump;
   let newTop  = rect.top  + dy * jump;
 
-  // hranice aby bolo celé tlačidlo viditeľné
   const pad = 8;
   const minLeft = pad;
   const minTop  = pad;
@@ -76,10 +85,21 @@ function moveNoButtonAway(fromX, fromY) {
 
   noBtn.style.left = `${newLeft}px`;
   noBtn.style.top  = `${newTop}px`;
+
+  escapes += 1;
+  localStorage.setItem("no_escapes_count", String(escapes));
+
+  // po limite už prestane utekať (a dovolí kliknúť)
+  if (!canStillEscape()) {
+    noBtn.textContent = "Nie 🙈";
+    noBtn.style.cursor = "pointer";
+  }
 }
 
-// PC: uteká keď sa kurzor priblíži
+// PC: uteká keď sa kurzor priblíži (kým má utekať)
 document.addEventListener("mousemove", (e) => {
+  if (!canStillEscape()) return;
+
   const rect = noBtn.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top  + rect.height / 2;
@@ -88,20 +108,28 @@ document.addEventListener("mousemove", (e) => {
   if (dist < 120) moveNoButtonAway(e.clientX, e.clientY);
 });
 
-// Mobile: uteká pri pokuse o ťuknutie
+// Mobile: uteká pri pokuse o ťuknutie (kým má utekať)
 noBtn.addEventListener("touchstart", (e) => {
-  e.preventDefault(); // zabráni reálnemu kliknutiu
+  if (!canStillEscape()) return; // už môže kliknúť normálne
+
+  e.preventDefault();
   const t = e.touches[0];
   moveNoButtonAway(t.clientX, t.clientY);
 }, { passive: false });
 
-// Pre istotu: aj pri kliknutí nech utečie
+// Kliknutie na Nie:
+// - kým uteká: kliknutie zablokuje a nechá ho odskočiť
+// - po limite: uloží "no" a nastaví oranžovú (aj po refreshi)
 noBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  moveNoButtonAway(window.innerWidth / 2, window.innerHeight / 2);
+  if (canStillEscape()) {
+    e.preventDefault();
+    moveNoButtonAway(window.innerWidth / 2, window.innerHeight / 2);
+    return;
+  }
+  setChoice("no");
 });
 
-// keď sa zmení veľkosť okna (rotácia mobilu), udržať tlačidlo v obraze
+// pri resize (rotácia mobilu) udržať tlačidlo v obraze
 window.addEventListener("resize", () => {
   if (!noInitialized) return;
 
@@ -118,7 +146,14 @@ window.addEventListener("resize", () => {
 });
 
 /* ---------------------------
-   Načítanie uloženého výsledku
+   Načítanie uloženého výsledku po refreshi
 ---------------------------- */
-const saved = localStorage.getItem("valentine_choice");
-if (saved) setChoice(saved);
+const saved = localStorage.getItem(STORAGE_KEY);
+if (saved === "yes" || saved === "no") {
+  setChoice(saved);
+}
+
+// ak už vyčerpal úteky v minulosti, tak nech už neuteká ani po refreshi
+if (!canStillEscape()) {
+  noBtn.textContent = "Nie 🙈";
+}
