@@ -15,6 +15,10 @@
   let moveCount = 0;
   let frozen = false;
 
+  // uložíme pôvodný text No (aby sme ho vedeli vrátiť späť)
+  const initialNoHTML = noBtn.innerHTML;
+
+  // --- BG + RESULT (persist) ---
   function setBackground(mode){
     document.body.classList.remove("bg-main","bg-yes","bg-no");
     document.body.classList.add(`bg-${mode}`);
@@ -25,7 +29,6 @@
     return localStorage.getItem(STORAGE_KEY_BG) || "main";
   }
 
-  // Zavolaj toto keď "nastane nový workflow"
   function triggerNewWorkflow(){
     localStorage.setItem(STORAGE_KEY_NEW, "1");
   }
@@ -33,8 +36,8 @@
   function setResult(type){
     if (!resultEl) return;
 
-    if (type === "yes") resultEl.textContent = "💜💖";
-    else if (type === "no") resultEl.textContent = "🫤😔😢";
+    if (type === "yes") resultEl.textContent = "💚💖";
+    else if (type === "no") resultEl.textContent = "💔😢";
     else resultEl.textContent = "";
 
     if (type) localStorage.setItem(STORAGE_KEY_RESULT, type);
@@ -50,7 +53,6 @@
     const shouldReset = localStorage.getItem(STORAGE_KEY_NEW) === "1";
 
     if (shouldReset) {
-      // nový workflow -> reset na main a flag zmaž (a vymaž aj emoji)
       localStorage.removeItem(STORAGE_KEY_NEW);
       localStorage.setItem(STORAGE_KEY_BG, "main");
       localStorage.removeItem(STORAGE_KEY_RESULT);
@@ -59,10 +61,10 @@
       return;
     }
 
-    // normálne -> obnov posledný uložený stav (yes/no/main)
     setBackground(getSavedBackground());
   }
 
+  // --- NO button movement ---
   function randomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
@@ -80,7 +82,6 @@
     let x = randomInt(minX, maxX);
     let y = randomInt(minY, maxY);
 
-    // vyhni sa mikropohybu
     for (let i = 0; i < 8; i++) {
       const dx = x - rect.left;
       const dy = y - rect.top;
@@ -126,13 +127,83 @@
     }
   }
 
-  // YES -> zelený gradient + srdiečka (uloží sa a pretrvá po refreshi)
+  // --- RESET (invisible) ---
+  // Neviditeľná zóna vľavo hore. Po 3 klikoch spraví reset.
+  function createInvisibleResetHotspot(){
+    const hotspot = document.createElement("button");
+    hotspot.type = "button";
+    hotspot.setAttribute("aria-label", "Reset");
+    hotspot.tabIndex = -1; // neotravuje tabom
+
+    Object.assign(hotspot.style, {
+      position: "fixed",
+      top: "0px",
+      left: "0px",
+      width: "56px",
+      height: "56px",
+      opacity: "0",
+      background: "transparent",
+      border: "0",
+      padding: "0",
+      margin: "0",
+      zIndex: "9999",
+      cursor: "default"
+    });
+
+    document.body.appendChild(hotspot);
+    return hotspot;
+  }
+
+  let resetClicks = 0;
+  let resetTimer = null;
+
+  function resetAll(){
+    // vizuál
+    setBackground("main");
+    setResult(null);
+
+    // vráť tlačidlo No do pôvodného stavu + vráť ho na pôvodnú pozíciu
+    frozen = false;
+    moveCount = 0;
+    current = { x: 0, y: 0 };
+    noBtn.style.transform = `translate3d(0px, 0px, 0)`;
+    noBtn.innerHTML = initialNoHTML;
+
+    // úložisko
+    localStorage.setItem(STORAGE_KEY_BG, "main");
+    localStorage.removeItem(STORAGE_KEY_RESULT);
+    // ak by bol nastavený flag "new workflow", zruš ho tiež
+    localStorage.removeItem(STORAGE_KEY_NEW);
+  }
+
+  function handleResetClick(){
+    resetClicks++;
+
+    // malé okno na 3 kliky (napr. 1.2s), inak sa počítadlo vynuluje
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => { resetClicks = 0; }, 1200);
+
+    if (resetClicks >= 3){
+      resetClicks = 0;
+      clearTimeout(resetTimer);
+      resetTimer = null;
+      resetAll();
+    }
+  }
+
+  const resetHotspot = createInvisibleResetHotspot();
+  resetHotspot.addEventListener("click", handleResetClick);
+  resetHotspot.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    handleResetClick();
+  }, { passive: false });
+
+  // --- Events ---
   yesBtn.addEventListener("click", () => {
     setBackground("yes");
     setResult("yes");
   });
 
-  // NO uteká len MAX_MOVES krát
   noBtn.addEventListener("mouseenter", evade);
 
   noBtn.addEventListener("touchstart", (e) => {
@@ -140,14 +211,12 @@
     evade();
   }, { passive: false });
 
-  // NO -> oranžový gradient + 💔😢 až keď je frozen (uloží sa a pretrvá po refreshi)
   noBtn.addEventListener("click", () => {
     if (!frozen) return;
     setBackground("no");
     setResult("no");
   });
 
-  // resize poistka (len keď ešte neuteká)
   window.addEventListener("resize", () => {
     if (frozen) return;
 
@@ -169,6 +238,6 @@
   applyBackgroundOnLoad();
   loadResult();
 
-  // Ak chceš aby "nový workflow" nastal pri odchode zo stránky, odkomentuj:
+  // ak chceš reset na "nový workflow" pri odchode, odkomentuj:
   // window.addEventListener("beforeunload", triggerNewWorkflow);
 })();
