@@ -1,11 +1,11 @@
 /* style.css */
 :root{
   --bg-main: linear-gradient(135deg,
-    #ff8a00 0%,
-    #ffd000 18%,
-    #ffffff 38%,
-    #c24bff 62%,
-    #ff4fa7 100%
+    #0B8F3A 0%,
+    #25c66b 18%,
+    #89c049 38%,
+    #ffb000 62%,
+    #ff6a00 100%
   );
   --bg-yes: linear-gradient(135deg,
     #0b8f3a 0%,
