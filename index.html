@@ -1,22 +1,24 @@
+<!-- index.html -->
 <!doctype html>
 <html lang="sk">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Valentín? 💘</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Valentine</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="card">
-    <h1>Chceš byť môj Valentín? 💘</h1>
-    <p class="hint">Klikni na jednu možnosť.</p>
+  <main class="stage" id="stage">
+    <section class="card" aria-label="Valentine card">
+      <h1>Will you be my valentine?</h1>
 
-    <div class="buttons">
-      <button id="yesBtn" class="btn yes">Áno</button>
-      <button id="noBtn" class="btn no">Nie</button>
-    </div>
+      <div class="buttons" id="buttons">
+        <button class="btn yes" id="yesBtn" type="button">Yes</button>
+        <button class="btn no" id="noBtn" type="button">No</button>
+      </div>
 
-    <p id="result" class="result" aria-live="polite"></p>
+      <p class="hint" id="hint">Tip: Skús kliknúť na “No” 3× 😉</p>
+    </section>
   </main>
 
   <script src="script.js"></script>
