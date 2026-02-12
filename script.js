@@ -4,68 +4,53 @@
   const noBtn  = document.getElementById("noBtn");
   const hint   = document.getElementById("hint");
 
-  const PADDING = 10;       // minimálna medzera od okraja obrazovky
-  const MAX_NO_CLICKS = 3;  // po 3 klikoch už neuteká
+  const PADDING = 10;
+  const MAX_MOVES = 3;
 
-  let noClicks = 0;
-  let evasionEnabled = true;
-
-  // Držíme aktuálnu pozíciu cez transform (x,y) v rámci viewportu
+  // transform offsety
   let current = { x: 0, y: 0 };
 
-  function setBackground(mode) {
-    if (mode === "yes") {
-      document.body.style.background = "var(--bg-yes)";
-    } else if (mode === "no") {
-      document.body.style.background = "var(--bg-no)";
-    } else {
-      document.body.style.background = "var(--bg-main)";
-    }
-  }
+  // počítame PRESUNY (nie kliky)
+  let moveCount = 0;
+  let frozen = false; // keď true, už neuteká
 
-  function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
+  function setBackground(mode) {
+    if (mode === "yes") document.body.style.background = "var(--bg-yes)";
+    else if (mode === "no") document.body.style.background = "var(--bg-no)";
+    else document.body.style.background = "var(--bg-main)";
   }
 
   function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  // Vygeneruje novú pozíciu tak, aby bolo tlačidlo vždy celé viditeľné na obrazovke
   function computeSafePosition() {
     const rect = noBtn.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
 
-    // Povolený rozsah pre ľavý horný roh tlačidla (v viewport súradniciach)
     const minX = PADDING;
     const minY = PADDING;
-    const maxX = window.innerWidth  - w - PADDING;
-    const maxY = window.innerHeight - h - PADDING;
+    const maxX = Math.max(minX, window.innerWidth  - w - PADDING);
+    const maxY = Math.max(minY, window.innerHeight - h - PADDING);
 
-    // Ak je extrémne malý viewport, poistka
-    const safeMaxX = Math.max(minX, maxX);
-    const safeMaxY = Math.max(minY, maxY);
+    let x = randomInt(minX, maxX);
+    let y = randomInt(minY, maxY);
 
-    // Skúsime nájsť pozíciu, ktorá nebude "takmer tá istá"
-    let x, y;
-    for (let i = 0; i < 10; i++) {
-      x = randomInt(minX, safeMaxX);
-      y = randomInt(minY, safeMaxY);
-
-      const dx = x - (rect.left);
-      const dy = y - (rect.top);
+    // skús sa vyhnúť mikropohybu
+    for (let i = 0; i < 8; i++) {
+      const dx = x - rect.left;
+      const dy = y - rect.top;
       if (Math.hypot(dx, dy) > 80) break;
+      x = randomInt(minX, maxX);
+      y = randomInt(minY, maxY);
     }
 
     return { x, y };
   }
 
-  // Nastaví transform tak, aby sa tlačidlo presunulo na cieľové (viewport) súradnice
   function moveNoToViewportXY(targetX, targetY) {
     const rect = noBtn.getBoundingClientRect();
-
-    // rozdiel medzi aktuálnym rect a cieľom
     const dx = targetX - rect.left;
     const dy = targetY - rect.top;
 
@@ -75,63 +60,74 @@
     noBtn.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
   }
 
+  function freezeNo() {
+    frozen = true;
+    // text s novým riadkom cez <br>
+    noBtn.innerHTML = `No<br>Okay, tap me`;
+    hint.textContent = "Už neutekám 😅";
+  }
+
   function evade() {
-    if (!evasionEnabled) return;
+    if (frozen) return;
+
+    // ak už máme 3 presuny, stop
+    if (moveCount >= MAX_MOVES) {
+      freezeNo();
+      return;
+    }
 
     const pos = computeSafePosition();
     moveNoToViewportXY(pos.x, pos.y);
+
+    moveCount++;
+    if (moveCount >= MAX_MOVES) {
+      // po treťom presune hneď “zamrzni”
+      freezeNo();
+    } else {
+      hint.textContent = `Presun ${moveCount}/${MAX_MOVES}`;
+    }
   }
 
-  // --- Events ---
-
+  // YES = zelený gradient
   yesBtn.addEventListener("click", () => {
     setBackground("yes");
     hint.textContent = "Yaaay 💚";
   });
 
-  // "No" sa posunie pri pokuse prejsť kurzorom / dotykom
+  // NO: uteká len 3x na hover/touch
   noBtn.addEventListener("mouseenter", evade);
+
   noBtn.addEventListener("touchstart", (e) => {
-    // zabráni náhodnému kliknutiu pri touch (najprv uteká)
-    if (evasionEnabled) e.preventDefault();
+    // keď ešte neutiekol 3x, nech sa pri touch najprv uhne (bez kliknutia)
+    if (!frozen) e.preventDefault();
     evade();
   }, { passive: false });
 
-  // Po 3 úspešných kliknutiach sa prestane hýbať a zafarbí na oranžový gradient
+  // NO: až keď je zmrazený, klik nastaví oranžový gradient
   noBtn.addEventListener("click", () => {
-    noClicks++;
-
-    if (noClicks < MAX_NO_CLICKS) {
-      hint.textContent = `No click: ${noClicks}/3 (ešte utekám 😈)`;
-      // po kliknutí sa môže ešte raz pohnúť, aby to bolo "živé"
-      evade();
-      return;
-    }
-
-    // tretí klik = finále
-    evasionEnabled = false;
+    if (!frozen) return; // kým neutiekol 3x, klik nič nerobí
     setBackground("no");
-    hint.textContent = "OK… 😅 (už neutekám)";
+    hint.textContent = "Ok… orange it is 🧡";
   });
 
-  // Keď sa zmení veľkosť okna, udrž "No" v bezpečnej oblasti
+  // resize poistka (len keď ešte neuteká)
   window.addEventListener("resize", () => {
-    if (!evasionEnabled) return;
-    // presuň na bezpečnú pozíciu (ak by sa po resize ocitol mimo)
+    if (frozen) return;
+
     const rect = noBtn.getBoundingClientRect();
     const w = rect.width, h = rect.height;
 
     const minX = PADDING;
     const minY = PADDING;
-    const maxX = window.innerWidth  - w - PADDING;
-    const maxY = window.innerHeight - h - PADDING;
+    const maxX = Math.max(minX, window.innerWidth  - w - PADDING);
+    const maxY = Math.max(minY, window.innerHeight - h - PADDING);
 
-    const clampedX = clamp(rect.left, minX, Math.max(minX, maxX));
-    const clampedY = clamp(rect.top,  minY, Math.max(minY, maxY));
+    const clampedX = Math.min(Math.max(rect.left, minX), maxX);
+    const clampedY = Math.min(Math.max(rect.top,  minY), maxY);
 
     moveNoToViewportXY(clampedX, clampedY);
   });
 
-  // inicial
+  // init
   setBackground("main");
 })();
