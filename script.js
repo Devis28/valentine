@@ -4,7 +4,7 @@
   const noBtn  = document.getElementById("noBtn");
 
   const PADDING = 10;
-  const MAX_MOVES = 3;
+  const MAX_MOVES = 2;
 
   // transform offsety
   let current = { x: 0, y: 0 };
@@ -62,7 +62,7 @@
   function freezeNo() {
     frozen = true;
     // text s novým riadkom cez <br>
-    noBtn.innerHTML = `No<br>Okay, tap me`;
+    noBtn.innerHTML = `No (Okay, tap me)`;
   }
 
   function evade() {
