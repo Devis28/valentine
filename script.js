@@ -6,21 +6,42 @@
   const PADDING = 10;
   const MAX_MOVES = 2;
 
-  const STORAGE_KEY_BG = "valentine_bg"; // main | yes | no
+  const STORAGE_KEY_BG = "valentine_bg";            // main | yes | no
+  const STORAGE_KEY_NEW = "valentine_new_workflow"; // "1" = reset on next load
 
   let current = { x: 0, y: 0 };
   let moveCount = 0;
   let frozen = false;
 
-  function saveBackground(mode){
-    localStorage.setItem(STORAGE_KEY_BG, mode);
-  }
-
   function setBackground(mode){
     document.body.classList.remove("bg-main","bg-yes","bg-no");
     document.body.classList.add(`bg-${mode}`);
     localStorage.setItem(STORAGE_KEY_BG, mode);
- }
+  }
+
+  function getSavedBackground(){
+    return localStorage.getItem(STORAGE_KEY_BG) || "main";
+  }
+
+  // Zavolaj toto vždy, keď "nastane nový workflow"
+  function triggerNewWorkflow(){
+    localStorage.setItem(STORAGE_KEY_NEW, "1");
+  }
+
+  function applyBackgroundOnLoad(){
+    const shouldReset = localStorage.getItem(STORAGE_KEY_NEW) === "1";
+
+    if (shouldReset) {
+      // nový workflow -> reset na main a flag zmaž
+      localStorage.removeItem(STORAGE_KEY_NEW);
+      localStorage.setItem(STORAGE_KEY_BG, "main");
+      setBackground("main");
+      return;
+    }
+
+    // normálne -> obnov posledný uložený stav (yes/no/main)
+    setBackground(getSavedBackground());
+  }
 
   function randomInt(min, max){
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -84,8 +105,10 @@
     }
   }
 
-  // YES -> zelený gradient (a uložiť)
-  yesBtn.addEventListener("click", () => setBackground("yes"));
+  // YES -> zelený gradient (uloží sa a pretrvá po refreshi)
+  yesBtn.addEventListener("click", () => {
+    setBackground("yes");
+  });
 
   // NO uteká len MAX_MOVES krát
   noBtn.addEventListener("mouseenter", evade);
@@ -95,13 +118,12 @@
     evade();
   }, { passive: false });
 
-  // NO -> oranžový gradient až keď je frozen (a uložiť)
+  // NO -> oranžový gradient až keď je frozen (uloží sa a pretrvá po refreshi)
   noBtn.addEventListener("click", () => {
     if (!frozen) return;
     setBackground("no");
   });
 
-  // resize poistka (len keď ešte neuteká)
   window.addEventListener("resize", () => {
     if (frozen) return;
 
@@ -119,7 +141,16 @@
     moveNoToViewportXY(clampedX, clampedY);
   });
 
-  // INIT: nastav background podľa uloženého stavu
-  document.body.classList.add("bg-main");
+  // INIT
+  applyBackgroundOnLoad();
 
+  // --------------------------
+  // Ako to použiť v praxi:
+  // Keď "nastane nový workflow", zavolaj:
+  // triggerNewWorkflow();
+  // (a potom napr. urob redirect alebo reload)
+  // --------------------------
+
+  // Príklad: ak chceš resetnúť pri opustení stránky:
+  // window.addEventListener("beforeunload", triggerNewWorkflow);
 })();
